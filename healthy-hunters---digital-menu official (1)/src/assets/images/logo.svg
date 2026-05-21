@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Diagonal arrow line -->
+  <line x1="38" y1="72" x2="62" y2="48" />
+  
+  <!-- Diamond head at top right of the arrow -->
+  <polygon points="62,48 68,42 74,48 68,54" fill="currentColor" stroke="none" />
+  
+  <!-- Left-top loop -->
+  <path d="M 48 50 L 38 40 L 38 28 L 50 28 L 60 38" />
+  
+  <!-- Right-bottom loop -->
+  <path d="M 52 50 L 62 60 L 62 72 L 50 72 L 40 62" />
+</svg>
