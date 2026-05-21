@@ -1,0 +1,6 @@
+{
+  "name": "Healthy Hunters - Digital Menu",
+  "description": "A fresh and modern digital menu for Healthy Hunters restaurant, featuring healthy breakfasts, lunches, and desserts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
