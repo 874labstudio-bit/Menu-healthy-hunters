@@ -298,14 +298,14 @@ const MenuDrawer = ({
             <div className="border-t border-gray-200/60 pt-6 space-y-4">
               <div className="space-y-1">
                 <span className="text-[8px] uppercase tracking-[0.2em] text-[#ba6c28] font-bold block">Horario de Cocina</span>
-                <p className="text-[10px] text-gray-500 font-medium font-sans">{configData.horario}</p>
+                <p className="text-[10px] text-gray-500 font-medium font-sans">{configData.horario || 'Lunes a Domingo: 8:00 AM - 8:00 PM'}</p>
               </div>
               <div className="flex justify-between items-end">
                 <div className="space-y-1">
                   <span className="text-[8px] uppercase tracking-[0.2em] text-[#ba6c28] font-bold block">Red de la Casa</span>
                   <p className="text-[10px] text-gray-400 font-sans font-light leading-snug flex flex-col">
-                    <span>Mesa: <strong className="text-gray-600 font-semibold font-mono">{configData.wifiRed}</strong></span>
-                    <span>Clave: <strong className="text-[#4a5d4e] font-semibold font-mono">{configData.wifiClave}</strong></span>
+                    <span>Nombre de wifi: <strong className="text-gray-600 font-semibold font-mono">{configData.wifiRed || 'Healthy Hunters'}</strong></span>
+                    <span>clave: <strong className="text-[#4a5d4e] font-semibold font-mono">{configData.wifiClave || '9753Healthy$'}</strong></span>
                   </p>
                 </div>
                 {onOpenSettings && (
@@ -492,6 +492,7 @@ const ProductDetail = ({ item, allItems, onBack, onSelectProduct }: { item: Menu
 };
 
 const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQax16GTId6gHF80_An0OYIuZhYWLKxBtQgQO1k4w7KaQRuZgE2yBRTLaX8G9DsHm-QxWgft-JSPwuH/pub?output=csv';
+const DEFAULT_CONFIG_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQax16GTId6gHF80_An0OYIuZhYWLKxBtQgQO1k4w7KaQRuZgE2yBRTLaX8G9DsHm-QxWgft-JSPwuH/pub?gid=1542140322&single=true&output=csv';
 
 // --- Main App ---
 
@@ -504,12 +505,12 @@ export default function App() {
   // Restaurant Info Config State
   const [configData, setConfigData] = useState<RestaurantConfig>({
     direccion: 'Carrera 53 # 79-222, Barranquilla, Colombia',
-    horario: 'Lunes a Domingo: 8:00 AM - 10:00 PM',
+    horario: 'Lunes a Domingo: 8:00 AM - 8:00 PM',
     instagram: '',
     facebook: '',
     telefono: '',
-    wifiRed: 'HealthyHunters_Guest',
-    wifiClave: 'wellness2026',
+    wifiRed: 'Healthy Hunters',
+    wifiClave: '9753Healthy$',
     bannerUrl: '',
     logoUrl: ''
   });
@@ -519,7 +520,11 @@ export default function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(MENU_ITEMS);
   const [spreadsheetId, setSpreadsheetId] = useState<string>(localStorage.getItem('menu_sheet_id') || DEFAULT_CSV_URL);
-  const [configUrl, setConfigUrl] = useState<string>(localStorage.getItem('menu_config_url') || 'https://google.com');
+  const [configUrl, setConfigUrl] = useState<string>(
+    localStorage.getItem('menu_config_url') && localStorage.getItem('menu_config_url') !== 'https://google.com'
+      ? localStorage.getItem('menu_config_url')!
+      : DEFAULT_CONFIG_URL
+  );
   const [isLoadingSheet, setIsLoadingSheet] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
@@ -576,24 +581,9 @@ export default function App() {
       return;
     }
     try {
-      let text = '';
-      if (url === 'https://google.com') {
-        // Simulated responsive spreadsheet mapping for the default URL (overcoming cors limits in the iframe)
-        text = `clave,valor
-instagram,https://instagram.com/healthyhunters
-facebook,https://facebook.com/healthyhunters
-telefono,https://wa.me/573001234567
-Logo_url,https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=150
-banner_home,https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1200
-direccion,Carrera 53 # 79-222, Barranquilla, Colombia
-horario,Lunes a Domingo: 8:00 AM - 10:00 PM
-wifi_red,HealthyHunters_Guest
-wifi_clave,wellness2026`;
-      } else {
-        const response = await fetch(url);
-        if (!response.ok) return;
-        text = await response.text();
-      }
+      const response = await fetch(url);
+      if (!response.ok) return;
+      const text = await response.text();
 
       const rows = parseCSV(text);
       if (!rows || rows.length < 1) return;
@@ -619,7 +609,12 @@ wifi_clave,wellness2026`;
         } else if (colA === 'Logo_url') {
           newConfig.logoUrl = colB;
         } else if (colA === 'banner_home') {
-          newConfig.bannerUrl = colB;
+          let bannerUrlOptimized = colB;
+          if (bannerUrlOptimized && bannerUrlOptimized.includes('cloudinary.com') && bannerUrlOptimized.includes('/upload/')) {
+            const uploadIdx = bannerUrlOptimized.indexOf('/upload/');
+            bannerUrlOptimized = bannerUrlOptimized.substring(0, uploadIdx + 8) + 'q_auto,f_auto/' + bannerUrlOptimized.substring(uploadIdx + 8);
+          }
+          newConfig.bannerUrl = bannerUrlOptimized;
         } else if (colA.toLowerCase().includes('direccion') || colA.toLowerCase().includes('address') || colA.toLowerCase().includes('ubicacion')) {
           newConfig.direccion = colB;
         } else if (colA.toLowerCase().includes('horario') || colA.toLowerCase().includes('schedule') || colA.toLowerCase().includes('horas')) {
@@ -675,7 +670,7 @@ wifi_clave,wellness2026`;
 
   const headerImageUrl = useMemo(() => {
     if (configData.bannerUrl) {
-      return formatCloudinaryUrl(configData.bannerUrl, false);
+      return configData.bannerUrl;
     }
     const bannerItem = menuItems.find(item => 
       item.seccion.toLowerCase().trim() === 'banner' || 
@@ -805,22 +800,20 @@ wifi_clave,wellness2026`;
       />
 
       {/* SECCIÓN SUPERIOR: HERO EDITORIAL */}
-      <header className="relative text-white pt-12 pb-24 px-6 overflow-hidden bg-[#4a5d4e]">
-        {/* Imagen de fondo de pantalla completa */}
-        <img 
-          src={headerImageUrl} 
-          alt="Healthy Hunters Background" 
-          className="absolute inset-0 w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-        {/* Filtro oscuro sutil overlay */}
-        <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
-        
+      <header 
+        className="relative text-white pt-16 pb-36 px-6 overflow-hidden bg-[#1c1d1a] min-h-[350px] flex flex-col justify-between"
+        style={{
+          backgroundImage: `url(${headerImageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
         {/* Decoración sutil de fondo */}
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
         
         {/* Header superior con buscador minimalista */}
-        <div className="max-w-md mx-auto flex justify-between items-center mb-12 relative z-10">
+        <div className="max-w-md mx-auto flex justify-between items-center mb-12 relative z-10 w-full">
             <button 
               onClick={() => setShowMenuDrawer(true)}
               className="w-10 h-10 flex flex-col justify-center gap-1.5 opacity-80 cursor-pointer"
@@ -858,14 +851,14 @@ wifi_clave,wellness2026`;
         </div>
 
         {/* Títulos Gourmet / Revista */}
-        <div className="max-w-md mx-auto text-center mb-6 relative z-10">
+        <div className="max-w-md mx-auto text-center mb-6 relative z-10 w-full">
             <h1 className="font-editorial text-4xl md:text-5xl font-medium tracking-wide leading-tight">
                 Healthy Hunters
             </h1>
         </div>
 
         {/* Indicadores del Carrusel */}
-        <div className="max-w-md mx-auto flex justify-center gap-1.5 mt-8 relative z-10">
+        <div className="max-w-md mx-auto flex justify-center gap-1.5 mt-8 relative z-10 w-full">
             <span className="w-8 h-1 bg-[#ba6c28] rounded-full transition-all duration-300"></span>
             <span className="w-2 h-1 bg-white/30 rounded-full"></span>
             <span className="w-2 h-1 bg-white/30 rounded-full"></span>
@@ -879,7 +872,7 @@ wifi_clave,wellness2026`;
         {/* SUBMENÚ DE UNIVERSOS */}
         <section className="mb-8">
             <div className="flex justify-between items-baseline mb-6">
-                <h2 className="font-editorial text-2xl font-semibold tracking-tight text-[#1A1A1A]">Universos</h2>
+                <h2 className="font-editorial text-2xl font-semibold tracking-tight text-[#1A1A1A]">Nuestra Carta</h2>
                 <span className="text-[10px] uppercase tracking-widest text-[#ba6c28] font-bold cursor-pointer">Ver todo</span>
             </div>
             
@@ -1013,7 +1006,7 @@ wifi_clave,wellness2026`;
                     type="text" 
                     value={configUrl}
                     onChange={(e) => setConfigUrl(e.target.value)}
-                    placeholder="Enlace CSV de configuración (ej: https://google.com)"
+                    placeholder="Enlace CSV de configuración"
                     className="w-full border border-gray-100 rounded-xl px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#ba6c28]/20 bg-[#FAF9F6] text-gray-800 font-sans"
                   />
                   <p className="mt-1 text-[10px] text-gray-500 leading-normal">
@@ -1025,8 +1018,8 @@ wifi_clave,wellness2026`;
                   <button
                     onClick={() => {
                       setSpreadsheetId(DEFAULT_CSV_URL);
-                      setConfigUrl('https://google.com');
-                      loadAllData(DEFAULT_CSV_URL, 'https://google.com');
+                      setConfigUrl(DEFAULT_CONFIG_URL);
+                      loadAllData(DEFAULT_CSV_URL, DEFAULT_CONFIG_URL);
                       setShowConfig(false);
                     }}
                     className="text-[10px] underline hover:text-[#ba6c28] text-gray-400 font-bold uppercase tracking-wider block"
