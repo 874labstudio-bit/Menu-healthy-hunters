@@ -681,7 +681,7 @@ export default function App() {
     if (bannerItem?.image) {
       return formatCloudinaryUrl(bannerItem.image, false);
     }
-    return 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=1200';
+    return '';
   }, [menuItems, configData.bannerUrl]);
 
   useEffect(() => {
@@ -801,9 +801,9 @@ export default function App() {
 
       {/* SECCIÓN SUPERIOR: HERO EDITORIAL */}
       <header 
-        className="relative text-white pt-16 pb-36 px-6 overflow-hidden bg-[#1c1d1a] min-h-[350px] flex flex-col justify-between"
+        className="relative text-white pt-16 pb-36 px-6 overflow-hidden bg-[#4a5d4e] min-h-[350px] flex flex-col justify-between"
         style={{
-          backgroundImage: `url(${headerImageUrl})`,
+          backgroundImage: headerImageUrl ? `url(${headerImageUrl})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat'
