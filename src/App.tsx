@@ -498,6 +498,7 @@ const DEFAULT_CONFIG_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQax
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<string>('Desayunos');
+  const [activeBusinessLine, setActiveBusinessLine] = useState<'restaurante' | 'cafe_bebidas' | 'tienda_saludable'>('restaurante');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
@@ -705,7 +706,10 @@ export default function App() {
     const validItems = menuItems.filter(item => 
       item.seccion.toLowerCase().trim() !== 'banner' &&
       item.category.toLowerCase().trim() !== 'banner' &&
-      item.name.toLowerCase().trim() !== 'banner'
+      item.name.toLowerCase().trim() !== 'banner' &&
+      item.seccion.toLowerCase().trim() !== 'general' &&
+      item.seccion.toLowerCase().trim() !== 'genera' &&
+      item.seccion.toLowerCase().trim() !== ''
     );
     const uniq: string[] = Array.from(new Set(validItems.map(item => item.seccion)));
     const order = [
@@ -729,11 +733,56 @@ export default function App() {
     });
   }, [menuItems]);
 
+  const getSectionLine = (sectionName: string): 'restaurante' | 'cafe_bebidas' | 'tienda_saludable' => {
+    const lower = sectionName.toLowerCase().trim();
+    if (
+      lower.includes('coffee') || 
+      lower.includes('bebida') || 
+      lower.includes('reposter') || 
+      lower.includes('tomar') ||
+      lower.includes('café') ||
+      lower.includes('cafe') ||
+      lower.includes('pastelería dulce')
+    ) {
+      return 'cafe_bebidas';
+    } else if (
+      lower.includes('mercado') || 
+      lower.includes('hunters') || 
+      lower.includes('tienda') || 
+      lower.includes('market') ||
+      lower.includes('suplemento')
+    ) {
+      return 'tienda_saludable';
+    } else {
+      return 'restaurante';
+    }
+  };
+
+  const filteredSectionsForLine = useMemo(() => {
+    return sections.filter(sec => getSectionLine(sec) === activeBusinessLine);
+  }, [sections, activeBusinessLine]);
+
   useEffect(() => {
     if (sections.length > 0 && !sections.includes(activeSection)) {
       setActiveSection(sections[0]);
     }
   }, [sections]);
+
+  useEffect(() => {
+    if (filteredSectionsForLine.length > 0 && !filteredSectionsForLine.includes(activeSection)) {
+      setActiveSection(filteredSectionsForLine[0]);
+      setActiveCategory('all');
+    }
+  }, [filteredSectionsForLine]);
+
+  useEffect(() => {
+    if (activeSection) {
+      const line = getSectionLine(activeSection);
+      if (line !== activeBusinessLine) {
+        setActiveBusinessLine(line);
+      }
+    }
+  }, [activeSection]);
 
   const dynamicCategories = useMemo(() => {
     const sectionItems = menuItems.filter(item => 
@@ -742,7 +791,12 @@ export default function App() {
       item.category.toLowerCase().trim() !== 'banner' &&
       item.name.toLowerCase().trim() !== 'banner'
     );
-    const uniqueCats = Array.from(new Set(sectionItems.map(item => item.category)));
+    const uniqueCats = Array.from(new Set(sectionItems.map(item => item.category)))
+      .filter((cat: any) => {
+        if (!cat) return false;
+        const lower = String(cat).toLowerCase().trim();
+        return lower !== 'genera' && lower !== 'general' && lower !== '';
+      });
     return ['all', ...uniqueCats];
   }, [menuItems, activeSection]);
 
@@ -751,7 +805,10 @@ export default function App() {
     const menuDishes = menuItems.filter(item => 
       item.seccion.toLowerCase().trim() !== 'banner' &&
       item.category.toLowerCase().trim() !== 'banner' &&
-      item.name.toLowerCase().trim() !== 'banner'
+      item.name.toLowerCase().trim() !== 'banner' &&
+      item.seccion.toLowerCase().trim() !== 'general' &&
+      item.seccion.toLowerCase().trim() !== 'genera' &&
+      item.seccion.toLowerCase().trim() !== ''
     );
 
     return menuDishes.filter(item => {
@@ -769,6 +826,20 @@ export default function App() {
       return matchesSection && matchesCategory;
     });
   }, [activeSection, activeCategory, searchQuery, menuItems]);
+
+  const featuredItems = useMemo(() => {
+    if (searchQuery.trim()) return [];
+    return menuItems.filter(item => 
+      item.destacado && 
+      item.seccion.toLowerCase().trim() === activeSection.toLowerCase().trim() &&
+      item.seccion.toLowerCase().trim() !== 'banner' &&
+      item.category.toLowerCase().trim() !== 'banner' &&
+      item.name.toLowerCase().trim() !== 'banner' &&
+      item.seccion.toLowerCase().trim() !== 'general' &&
+      item.seccion.toLowerCase().trim() !== 'genera' &&
+      item.seccion.toLowerCase().trim() !== ''
+    );
+  }, [menuItems, activeSection, searchQuery]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF9F6] pb-24">
@@ -869,17 +940,56 @@ export default function App() {
       {/* SECCIÓN CONTENEDORA FLOTANTE */}
       <main className="relative -mt-16 bg-[#FAF9F6] rounded-t-premium min-h-screen shadow-2xl border-t border-white/20 px-6 pt-8 max-w-md mx-auto w-full">
         
+        {/* LÍNEAS DE NEGOCIO (SELECTOR DE UNIVERSOS) */}
+        <section className="mb-6">
+          <div className="bg-white/80 backdrop-blur-md p-1 rounded-2xl flex border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative overflow-hidden">
+            {[
+              { id: 'restaurante', name: 'Restaurante', icon: Utensils },
+              { id: 'cafe_bebidas', name: 'Café & Bebidas', icon: Coffee },
+              { id: 'tienda_saludable', name: 'Tienda', icon: ShoppingBag }
+            ].map(line => {
+              const Icon = line.icon;
+              const isActive = activeBusinessLine === line.id;
+              return (
+                <button
+                  key={line.id}
+                  onClick={() => {
+                    setActiveBusinessLine(line.id as any);
+                    setSearchQuery('');
+                    setSelectedProduct(null);
+                  }}
+                  className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl text-center relative z-10 transition-all cursor-pointer ${
+                    isActive ? 'text-white font-bold' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeBusinessLineBG"
+                      className="absolute inset-0 bg-[#4a5d4e] rounded-xl z-[-1]"
+                      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                    />
+                  )}
+                  <Icon size={15} className={`${isActive ? 'text-white' : 'text-gray-400'} mb-1 transition-colors`} />
+                  <span className="text-[9px] font-bold uppercase tracking-wider leading-none">
+                    {line.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         {/* SUBMENÚ DE UNIVERSOS */}
         <section className="mb-8">
             <div className="flex justify-between items-baseline mb-6">
                 <h2 className="font-editorial text-2xl font-semibold tracking-tight text-[#1A1A1A]">Nuestra Carta</h2>
-                <span className="text-[10px] uppercase tracking-widest text-[#ba6c28] font-bold cursor-pointer">Ver todo</span>
             </div>
             
             {/* Carrusel Horizontal de Secciones */}
             <div className="flex gap-6 overflow-x-auto no-scrollbar py-2 border-b border-gray-200/60 pb-4">
-              {sections.length > 0 ? (
-                sections.map(section => (
+              {filteredSectionsForLine.length > 0 ? (
+                filteredSectionsForLine.map(section => (
                   <CategoryPill
                     key={section}
                     id={section}
@@ -918,6 +1028,60 @@ export default function App() {
           </section>
         )}
 
+        {/* SECCIÓN DE RECOMENDADOS "SELECCIÓN DE LA CASA" */}
+        {featuredItems.length > 0 && searchQuery === '' && (
+          <section className="mb-8">
+            <div className="flex justify-between items-baseline mb-4">
+              <h3 className="font-editorial text-lg font-bold tracking-tight text-[#1A1A1A] flex items-center gap-1.5 animate-pulse">
+                <span className="text-[#ba6c28]">🌟</span> Selección de la Casa
+              </h3>
+              <span className="text-[9px] uppercase tracking-widest text-[#ba6c28] font-bold">Favoritos</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+              {featuredItems.map(item => (
+                <motion.div
+                  key={`featured-${item.id}`}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setSelectedProduct(item)}
+                  className="flex-shrink-0 w-44 bg-white rounded-2xl overflow-hidden border border-gray-100 p-2.5 shadow-sm flex flex-col justify-between cursor-pointer group"
+                >
+                  <div>
+                    <div className="w-full h-24 bg-gray-50 rounded-xl overflow-hidden mb-2 relative">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-200">
+                          <Utensils size={24} />
+                        </div>
+                      )}
+                      <div className="absolute top-1.5 left-1.5 z-10 bg-[#FAF9F6]/90 backdrop-blur-md text-[#ba6c28] text-[8px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md shadow-xs">
+                        Best Seller
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-xs text-[#1A1A1A] line-clamp-1 group-hover:text-[#ba6c28] transition-colors uppercase tracking-tight leading-none mb-1">
+                      {item.name}
+                    </h4>
+                    <p className="text-[10px] text-gray-400 line-clamp-1 font-light leading-none">
+                      {item.descripcion_corta}
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center mt-3 pt-1.5 border-t border-gray-50">
+                    <span className="text-[11px] font-bold text-[#4a5d4e]">
+                      ${item.price.toLocaleString('es-CO')}
+                    </span>
+                    <span className="text-[9px] text-[#ba6c28] font-semibold uppercase tracking-wider">Ver</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* GRID DE PRODUCTOS */}
         <section className="pb-32">
           {isLoadingSheet ? (
@@ -927,6 +1091,13 @@ export default function App() {
             </div>
           ) : (
             <>
+              {featuredItems.length > 0 && searchQuery === '' && (
+                <div className="flex justify-between items-baseline mb-4">
+                  <h3 className="font-editorial text-lg font-bold tracking-tight text-[#1A1A1A]">
+                    Toda la Variedad
+                  </h3>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 {filteredItems.map(item => (
                   <MenuItemCard 

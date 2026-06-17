@@ -90,7 +90,7 @@ export const fetchCSVData = async (url: string): Promise<SheetProduct[]> => {
     };
 
     return {
-      seccion: getVal('seccion') || 'General',
+      seccion: getVal('seccion') || '',
       categoria: getVal('categoria') || 'Sin categoría',
       nombre: getVal('nombre') || `Producto ${index + 1}`,
       descripcion: getVal('descripcion') || '',
@@ -143,7 +143,7 @@ export const fetchSpreadsheetData = async (spreadsheetId: string, range: string)
     };
 
     return {
-      seccion: getVal('seccion') || 'General',
+      seccion: getVal('seccion') || '',
       categoria: getVal('categoria') || 'Sin categoría',
       nombre: getVal('nombre') || `Producto ${index + 1}`,
       descripcion: getVal('descripcion') || '',
